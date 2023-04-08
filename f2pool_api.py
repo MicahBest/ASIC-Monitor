@@ -1,20 +1,21 @@
 import requests
 import os
+import time
+import discord_bot
 
 # F2Pool API endpoint URL
-API_URL = 'https://api.f2pool.com/'
+API_URL = 'https://api.f2pool.com/bitcoin'
 
 # Define the API request
 USER = os.environ['F2POOL_USER']
 
 # Make the API request
-response = requests.get(f"https://api.f2pool.com/bitcoin/{USER}")
+response = requests.get(f"{API_URL}/{USER}").json()
 
-[print(key) for key in response.json().keys()]
-print()
+for i in range(len(response["workers"])):
+    worker = response["workers"][i][0]
+    hashrate = response["workers"][i][1]
 
-hashrate_history = response.json()["hashrate_history"]
-worker = response.json()["workers"][0][0]
+    print(f"Current hashrate of Miner {worker} = {hashrate/10**12:.1f} TH/s")
 
-time, hashrate = list(hashrate_history.items())[-1]
-print(f"Current hashrate of Miner {worker} at {time} = {hashrate/10**12:.1f} TH/s")
+discord_bot.run_discord_bot()
