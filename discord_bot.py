@@ -1,16 +1,15 @@
 import os
-import time
 import asyncio
 import discord
-import threading 
 import bot_responses as responses
 from f2pool_api import makeRequest
 
 DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
-DISCORD_CHANNEL_ID = os.environ["DISCORD_CHANNEL_ID"]
+DISCORD_CHANNEL_ID = int(os.environ["DISCORD_CHANNEL_ID"])
 
 intents=discord.Intents.default()
 intents.message_content = True
+intents.members = True
 client = discord.Client(intents=intents)
 
 async def send_message(message, user_message, is_private):
@@ -22,30 +21,32 @@ async def send_message(message, user_message, is_private):
         print(e)
         
 async def send_discord_message(message):
-    channel = client.get_channel(DISCORD_CHANNEL_ID)
-    await channel.send(message)
+    try:
+        channel = client.get_channel(DISCORD_CHANNEL_ID)
+        await channel.send(message)
+        
+    except Exception as e:
+        print(e)
 
 async def api_monitor():
     # The interval between API requests in seconds
-    interval = 10
+    interval = 600
 
     while True:
         status = makeRequest()
 
         for worker in status.keys():
             if status[worker]["hashrate"] < 1:
-                offline = True
-                
-        await send_discord_message("Worker offline!")
+                await send_discord_message(f"Warning! Worker {worker} is offline!")
+                await send_discord_message(f"Rebooting the system now.")
 
         # Wait for the specified interval before making the next request
-        time.sleep(interval)
-           
+        await asyncio.sleep(interval)
+
 @client.event
 async def on_ready():
-    global channel
-    channel = client.get_channel(DISCORD_CHANNEL_ID)
     print(f"{client.user} is now running")
+    await api_monitor()
     
 @client.event
 async def on_message(message):
@@ -65,12 +66,5 @@ async def on_message(message):
         await send_message(message, user_message, is_private=False)
 
 if __name__ == "__main__":
-    # Start monitoring thread
-    monitor_loop = asyncio.get_event_loop()
-    monitor_loop.create_task(api_monitor())
-    
-    # monitor_thread = threading.Thread(target=api_monitor)
-    # monitor_thread.start()
-    
     client.run(DISCORD_BOT_TOKEN)
     

@@ -18,6 +18,4 @@ def makeRequest():
         info[worker] = {}
         info[worker]["hashrate"] = round(hashrate, 1)
 
-        print(f"Current hashrate of Miner {worker} = {hashrate:.1f} TH/s")
-
     return info
